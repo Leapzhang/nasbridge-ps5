@@ -203,6 +203,13 @@ app-work: FORCE
 	  [ -e "$(CURDIR)/app/overrides/$$f" ] || cmp -s "$$f" "$(CURDIR)/$(APP_WORK)/$$f" || \
 	  cp "$$f" "$(CURDIR)/$(APP_WORK)/$$f"; done
 	@cp -a app/overrides/. $(APP_WORK)/
+	@mkdir -p $(APP_WORK)/build/host $(APP_WORK)/assets/fonts
+	@python3 $(APP_WORK)/tools/font-baker/gb2312.py > $(APP_WORK)/build/host/gb2312.txt
+	@clang++-18 -std=c++20 -O2 -w $(APP_WORK)/tools/font-baker/bake_font.cpp \
+	  -o $(APP_WORK)/build/host/bake_font
+	@$(APP_WORK)/build/host/bake_font /opt/noto/NotoSansSC-VF.ttf \
+	  $(APP_WORK)/assets/fonts/noto-sans-sc.huifont 32 4 4096 cjk \
+	  $(APP_WORK)/build/host/gb2312.txt
 	@rm -rf $(APP_WORK)/sce_sys && cp -a app/sce_sys $(APP_WORK)/sce_sys
 	@python3 -c 'import json;p="$(APP_WORK)/sce_sys/param.json";d=json.load(open(p));d["contentVersion"]="$(CONTENT_VERSION)";open(p,"w").write(json.dumps(d,indent=2)+"\n")'
 	@rm -f $(APP_WORK)/assets/audio/music/*.ogg
