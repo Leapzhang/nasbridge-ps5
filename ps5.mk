@@ -209,7 +209,7 @@ app-work: FORCE
 	  -o $(APP_WORK)/build/host/bake_font
 	@$(APP_WORK)/build/host/bake_font /opt/noto/NotoSansSC-VF.ttf \
 	  $(APP_WORK)/assets/fonts/noto-sans-sc.huifont 32 4 4096 cjk \
-	  $(APP_WORK)/build/host/gb2312.txt
+	  $(APP_WORK)/build/host/gb2312.txt 0.6
 	@rm -rf $(APP_WORK)/sce_sys && cp -a app/sce_sys $(APP_WORK)/sce_sys
 	@python3 -c 'import json;p="$(APP_WORK)/sce_sys/param.json";d=json.load(open(p));d["contentVersion"]="$(CONTENT_VERSION)";open(p,"w").write(json.dumps(d,indent=2)+"\n")'
 	@rm -f $(APP_WORK)/assets/audio/music/*.ogg
