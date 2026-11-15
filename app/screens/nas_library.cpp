@@ -584,6 +584,7 @@ struct LibraryLoader::Job
         bool zstd_index = false;
         bool zstd_pack = false;
         bool eboot = false;
+        std::vector<DavEntry> zstd_root_files;
         int listings = 0;
         for (std::size_t next = 0; next < queue.size() && listings < kListings; ++next)
         {
@@ -602,6 +603,8 @@ struct LibraryLoader::Job
                 }
                 continue;
             }
+            if (folder.depth == 0)
+                zstd_root_files = inside;
             for (const DavEntry &entry : inside)
             {
                 if (!entry.folder)
@@ -668,12 +671,42 @@ struct LibraryLoader::Job
         {
             // This layout already contains game files. Copy the directory as
             // is; the .pak files are game assets, not archives to unpack.
-            game->note = "No sce_sys metadata: using the folder name; installation depends on ShadowMountPlus";
+            game->base = game->entry; // optional NASBridge metadata lives at the game root
+            std::string metadata_name;
+            for (const DavEntry &file : zstd_root_files)
+            {
+                if (file.folder)
+                    continue;
+                const std::string name = lowered(file.name);
+                if (name == "nasbridge.json")
+                {
+                    metadata_name = file.name;
+                    game->stamp += file.name + ":" + stamp_of(file) + ";";
+                }
+                if (name == "nasbridge-cover.png")
+                {
+                    game->cover_file.name = file.name;
+                    game->stamp += file.name + ":" + stamp_of(file) + ";";
+                }
+            }
+            if (!metadata_name.empty())
+            {
+                std::string json;
+                if (nas->read_file(root + game->entry + "/" + metadata_name, kMaxParam, &json))
+                    read_param_json(json, game);
+            }
+            if (metadata_name.empty() || game->cover_file.name.empty())
+                game->note = "For a title and cover, add nasbridge.json and nasbridge-cover.png";
             const std::string name = lowered(game->entry);
             if (name.size() >= 9 && name.substr(0, 4) == "ppsa" &&
                 std::all_of(name.begin() + 4, name.begin() + 9,
                             [](unsigned char c) { return c >= '0' && c <= '9'; }))
-                game->title_id = game->entry.substr(0, 9);
+            {
+                if (game->title_id.empty())
+                    game->title_id = game->entry.substr(0, 9);
+            }
+            if (game->title == game->entry && name.size() > 10 && name[9] == '-')
+                game->title = game->entry.substr(10);
             return true;
         }
         if (!image_path.empty())
@@ -988,7 +1021,9 @@ struct LibraryLoader::Job
                         {
                             const std::string low = lowered(file.name);
                             if (!file.folder &&
-                                (low == "param.json" || low == "pic0.png" || is_cover_name(file.name)))
+                                (low == "param.json" || low == "pic0.png" ||
+                                 low == "nasbridge.json" || low == "nasbridge-cover.png" ||
+                                 is_cover_name(file.name)))
                                 stamp += file.name + ":" + stamp_of(file) + ";";
                         }
                         same = stamp == before->stamp;
