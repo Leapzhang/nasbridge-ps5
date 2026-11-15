@@ -117,7 +117,7 @@ int main(int argc, char **argv)
     check(counted && count.folder_games == 6 && count.image_games == 3 &&
               count.other_folders == 3 && count.unreadable == 0,
           "every layout counted", got);
-    check(last_done == 9 && last_total == 9, "progress reaches every folder",
+    check(last_done == 11 && last_total == 11, "progress reaches every folder",
           std::to_string(last_done) + "/" + std::to_string(last_total));
     const std::string line = describe_count(connection, count);
     check(line == "Found 9 games: 6 folder games and 3 .exfat games. 3 folders have no game "
