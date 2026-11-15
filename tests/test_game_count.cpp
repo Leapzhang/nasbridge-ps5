@@ -74,6 +74,9 @@ int main(int argc, char **argv)
     file(g + "/PPSA26344-Zstd Game/eboot.bin");
     file(g + "/PPSA26344-Zstd Game/ampr_zstd.index");
     file(g + "/PPSA26344-Zstd Game/ampr_zstd-000.pak");
+    file(g + "/PPSA26344-Zstd Game/nasbridge.json",
+         R"({"titleId":"PPSA26344","titleName":"Ghost of Yotei"})");
+    file(g + "/PPSA26344-Zstd Game/nasbridge-cover.png");
     file(g + "/L/eboot.bin");                           // incomplete: not a game
     file(g + "/notes.txt");                              // a file: not a game
     const std::string control = work + "/control.json";
@@ -146,8 +149,9 @@ int main(int argc, char **argv)
                 {
                     (game.image ? images : folders) += 1;
                     if (game.entry == "PPSA26344-Zstd Game")
-                        check(game.title_id == "PPSA26344" && !game.image,
-                              "ZSTD asset directory is listed", game.title_id);
+                        check(game.title_id == "PPSA26344" && game.title == "Ghost of Yotei" &&
+                                  game.cover_file.name == "nasbridge-cover.png" && !game.image,
+                              "ZSTD sidecar title and cover are read", game.title);
                 }
             }
         }
