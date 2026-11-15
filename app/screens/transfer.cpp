@@ -771,6 +771,8 @@ class Lister
         const std::string relative = entry.path.substr(root_.size() + 1);
         if (!safe_relative(relative))
             return false; // hidden, NAS-internal, or a name NASBridge won't write
+        if (relative == "nasbridge.json" || relative == "nasbridge-cover.png")
+            return false; // library-only metadata is not part of the game
         if (entry.folder)
         {
             plan->folders.push_back(relative);
