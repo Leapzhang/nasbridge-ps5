@@ -127,6 +127,25 @@ Your NAS's games folder can hold:
 
 NASBridge only reads from your NAS. It never changes or deletes anything there.
 
+### ZSTD asset folders without `sce_sys`
+
+NASBridge also lists a folder containing `eboot.bin`, `ampr_zstd.index`, and
+`ampr_zstd-000.pak`. The `.pak` files are copied unchanged. A title can be
+shown without a `sce_sys` folder by adding an optional `nasbridge.json` file
+beside them:
+
+```json
+{"titleId":"PPSA26344","titleName":"Ghost of Yotei"}
+```
+
+Put a square PNG named `nasbridge-cover.png` in the same folder for its cover.
+The title and cover files are used only by NASBridge's library and are not
+copied to the PS5. Without them, the directory name is shown and the default
+cover is used. You can use the game's genuine `sce_sys/icon0.png` as the PNG
+source if you have it. ShadowMountPlus still needs to support the game layout
+for the copied game to appear and run; library recognition alone cannot ensure
+that.
+
 ## Good to know
 
 - **Deleting big games takes a while.** The PS5 deletes files at around 200
