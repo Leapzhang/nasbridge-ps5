@@ -71,6 +71,10 @@ int main(int argc, char **argv)
     file(g + "/H/x/y/z/sce_sys/param.json", kParam);     // three folders down
     file(g + "/I/a/b/c/d/sce_sys/param.json", kParam);   // four: as deep as is searched
     file(g + "/J/a/b/c/d/e/sce_sys/param.json", kParam); // deeper: not found
+    file(g + "/PPSA26344-Zstd Game/eboot.bin");
+    file(g + "/PPSA26344-Zstd Game/ampr_zstd.index");
+    file(g + "/PPSA26344-Zstd Game/ampr_zstd-000.pak");
+    file(g + "/L/eboot.bin");                           // incomplete: not a game
     file(g + "/notes.txt");                              // a file: not a game
     const std::string control = work + "/control.json";
     file(control, "{}");
@@ -110,13 +114,13 @@ int main(int argc, char **argv)
     char got[96];
     std::snprintf(got, sizeof(got), "folder %d, image %d, other %d, unreadable %d",
                   count.folder_games, count.image_games, count.other_folders, count.unreadable);
-    check(counted && count.folder_games == 5 && count.image_games == 3 &&
-              count.other_folders == 2 && count.unreadable == 0,
+    check(counted && count.folder_games == 6 && count.image_games == 3 &&
+              count.other_folders == 3 && count.unreadable == 0,
           "every layout counted", got);
     check(last_done == 9 && last_total == 9, "progress reaches every folder",
           std::to_string(last_done) + "/" + std::to_string(last_total));
     const std::string line = describe_count(connection, count);
-    check(line == "Found 8 games: 5 folder games and 3 .exfat games. 2 folders have no game "
+    check(line == "Found 9 games: 6 folder games and 3 .exfat games. 3 folders have no game "
                   "inside.",
           "the test's line", line);
     GameCount stopped;
@@ -139,7 +143,12 @@ int main(int argc, char **argv)
             {
                 listed = true;
                 for (const NasGame &game : event.games)
+                {
                     (game.image ? images : folders) += 1;
+                    if (game.entry == "PPSA26344-Zstd Game")
+                        check(game.title_id == "PPSA26344" && !game.image,
+                              "ZSTD asset directory is listed", game.title_id);
+                }
             }
         }
         sleep_ms(25);
