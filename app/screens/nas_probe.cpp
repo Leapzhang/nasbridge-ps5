@@ -241,6 +241,9 @@ bool count_in(const std::string &root, const std::vector<Listed> &top, const Lis
         std::vector<Folder> queue{{root + entry.name + "/", 0}};
         bool sce_sys = false;
         bool image = false;
+        bool zstd_index = false;
+        bool zstd_pack = false;
+        bool eboot = false;
         bool unreadable = false;
         int listings = 0;
         for (std::size_t next = 0; next < queue.size() && listings < kListings && !sce_sys;
@@ -257,7 +260,16 @@ bool count_in(const std::string &root, const std::vector<Listed> &top, const Lis
             for (const Listed &item : inside)
             {
                 if (!item.folder)
+                {
                     image = image || ends_with_nocase(item.name, ".exfat");
+                    if (folder.depth == 0)
+                    {
+                        const std::string name = lowered(item.name);
+                        zstd_index = zstd_index || name == "ampr_zstd.index";
+                        zstd_pack = zstd_pack || name == "ampr_zstd-000.pak";
+                        eboot = eboot || name == "eboot.bin";
+                    }
+                }
                 else if (lowered(item.name) == "sce_sys")
                     sce_sys = true;
                 else if (folder.depth + 1 <= kDepth)
@@ -266,7 +278,7 @@ bool count_in(const std::string &root, const std::vector<Listed> &top, const Lis
         }
         if (unreadable)
             ++count->unreadable;
-        else if (sce_sys)
+        else if (sce_sys || (zstd_index && zstd_pack && eboot))
             ++count->folder_games;
         else if (image)
             ++count->image_games;
