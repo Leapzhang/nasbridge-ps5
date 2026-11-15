@@ -581,6 +581,9 @@ struct LibraryLoader::Job
         // no better one turns up deeper down.
         std::string fallback_base;
         std::vector<DavEntry> fallback_files;
+        bool zstd_index = false;
+        bool zstd_pack = false;
+        bool eboot = false;
         int listings = 0;
         for (std::size_t next = 0; next < queue.size() && listings < kListings; ++next)
         {
@@ -603,6 +606,13 @@ struct LibraryLoader::Job
             {
                 if (!entry.folder)
                 {
+                    if (folder.depth == 0)
+                    {
+                        const std::string name = lowered(entry.name);
+                        zstd_index = zstd_index || name == "ampr_zstd.index";
+                        zstd_pack = zstd_pack || name == "ampr_zstd-000.pak";
+                        eboot = eboot || name == "eboot.bin";
+                    }
                     if (image_path.empty() && ends_with_nocase(entry.name, ".exfat"))
                     {
                         image = entry;
@@ -652,6 +662,18 @@ struct LibraryLoader::Job
                 game->note = "the game's sce_sys folder couldn't be listed";
             else
                 read_sce_sys(root, fallback_files, game);
+            return true;
+        }
+        if (zstd_index && zstd_pack && eboot)
+        {
+            // This layout already contains game files. Copy the directory as
+            // is; the .pak files are game assets, not archives to unpack.
+            game->note = "No sce_sys metadata: using the folder name; installation depends on ShadowMountPlus";
+            const std::string name = lowered(game->entry);
+            if (name.size() >= 9 && name.substr(0, 4) == "ppsa" &&
+                std::all_of(name.begin() + 4, name.begin() + 9,
+                            [](unsigned char c) { return c >= '0' && c <= '9'; }))
+                game->title_id = game->entry.substr(0, 9);
             return true;
         }
         if (!image_path.empty())
