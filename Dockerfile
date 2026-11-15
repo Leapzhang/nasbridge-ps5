@@ -112,6 +112,14 @@ ARG UI_KIT_REPO=https://github.com/J7mbo/ps5-homebrew-ui.git
 ARG UI_KIT_COMMIT=0f5742db7d5b767f58a1eb62544f5e43b7c411d2
 ENV UI_KIT=/opt/ps5-homebrew-ui
 
+# Noto Sans SC is the CJK fallback face. Verify the font bytes so builds stay
+# reproducible; its SIL OFL license is included with the app assets.
+RUN mkdir -p /opt/noto \
+ && curl -fL --retry 3 -o /opt/noto/NotoSansSC-VF.ttf \
+      https://github.com/notofonts/noto-cjk/raw/main/Sans/Variable/TTF/Subset/NotoSansSC-VF.ttf \
+ && echo 'd68bafcb48a2707749396aa12bbbd833cb70401f3a9a689fd2902c7e0d295964  /opt/noto/NotoSansSC-VF.ttf' \
+    | sha256sum --check --strict
+
 RUN git clone --quiet "$UI_KIT_REPO" "$UI_KIT" \
  && git -C "$UI_KIT" checkout --quiet "$UI_KIT_COMMIT" \
  && cd "$UI_KIT" \
