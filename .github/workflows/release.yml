@@ -17,6 +17,11 @@ on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      prerelease_tag:
+        description: 'Optional tag such as v0.6.0-zh-zstd.1; publish only after tests and build pass'
+        required: false
+        type: string
 
 permissions:
   contents: write # to create the release
@@ -72,15 +77,24 @@ jobs:
           if-no-files-found: error
 
       - name: Publish the release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || inputs.prerelease_tag != ''
         env:
           GH_TOKEN: ${{ github.token }}
+          PRERELEASE_TAG: ${{ inputs.prerelease_tag }}
         run: |
           version=$(cat VERSION)
+          tag="$GITHUB_REF_NAME"
+          if [ -n "$PRERELEASE_TAG" ]; then
+            tag="$PRERELEASE_TAG"
+            case "$tag" in
+              "v$version"-?*) ;;
+              *) echo "::error::Pre-release tag must start with v$version-"; exit 1 ;;
+            esac
+          fi
           title="NASBridge $version"
           pre=""
-          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
-            title="NASBridge ${GITHUB_REF_NAME#v} (test build)"
+          if [ "$tag" != "v$version" ]; then
+            title="NASBridge ${tag#v} (test build)"
             pre="--prerelease"
           fi
           cat > release-notes.md <<EOF
@@ -91,5 +105,5 @@ jobs:
 
           More in the [README](https://github.com/${GITHUB_REPOSITORY}#install).
           EOF
-          gh release create "$GITHUB_REF_NAME" out/NASBridge-"$version".elf $pre \
-            --title "$title" --notes-file release-notes.md --generate-notes
+          gh release create "$tag" out/NASBridge-"$version".elf $pre \
+            --target "$GITHUB_SHA" --title "$title" --notes-file release-notes.md --generate-notes
