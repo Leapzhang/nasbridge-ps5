@@ -13,6 +13,7 @@
 #include <atomic>
 #include <deque>
 #include <map>
+#include <cctype>
 #include <pthread.h>
 #include <sched.h>
 #include <unistd.h>
@@ -210,6 +211,56 @@ std::string string_value(const std::string &json, const char *key, std::size_t f
     return "";
 }
 
+// Read a title only from the requested language's object. A missing title must
+// not accidentally pick up the next language's titleName.
+std::string localized_title(const std::string &json, const std::string &language,
+                            std::size_t from)
+{
+    if (language.empty())
+        return "";
+    const std::string quoted = "\"" + language + "\"";
+    for (std::size_t at = json.find(quoted, from); at != std::string::npos;
+         at = json.find(quoted, at + 1))
+    {
+        std::size_t p = at + quoted.size();
+        while (p < json.size() && std::isspace(static_cast<unsigned char>(json[p])))
+            ++p;
+        if (p >= json.size() || json[p++] != ':')
+            continue;
+        while (p < json.size() && std::isspace(static_cast<unsigned char>(json[p])))
+            ++p;
+        if (p >= json.size() || json[p] != '{')
+            continue;
+        const std::size_t begin = p;
+        int depth = 0;
+        bool in_string = false;
+        bool escaped = false;
+        for (; p < json.size(); ++p)
+        {
+            const char c = json[p];
+            if (in_string)
+            {
+                if (escaped)
+                    escaped = false;
+                else if (c == '\\')
+                    escaped = true;
+                else if (c == '"')
+                    in_string = false;
+            }
+            else if (c == '"')
+                in_string = true;
+            else if (c == '{')
+                ++depth;
+            else if (c == '}' && --depth == 0)
+            {
+                const std::string object = json.substr(begin, p - begin + 1);
+                return string_value(object, "titleName");
+            }
+        }
+    }
+    return "";
+}
+
 std::string without_extension(const std::string &name)
 {
     const std::size_t dot = name.rfind('.');
@@ -251,28 +302,21 @@ void read_param_json(const std::string &json, NasGame *game)
     if (!version.empty())
         game->version = version;
 
-    // "localizedParameters": { "defaultLanguage": "en-US", "en-US": { "titleName": ... } }
+    // Prefer Simplified Chinese, then Traditional Chinese, then the game's default.
     std::string title;
     const std::size_t localized = json.find("\"localizedParameters\"");
     if (localized != std::string::npos)
     {
-        const std::string language = string_value(json, "defaultLanguage", localized);
-        if (!language.empty())
+        for (const char *language : {"zh-Hans", "zh-CN", "zh-SG", "zh-Hant", "zh-TW", "zh-HK"})
         {
-            const std::string quoted = "\"" + language + "\"";
-            std::size_t at = json.find(quoted, localized);
-            // Skip the "defaultLanguage": "en-US" value itself.
-            while (at != std::string::npos)
-            {
-                std::size_t p = at + quoted.size();
-                while (p < json.size() && (json[p] == ' ' || json[p] == '\t'))
-                    ++p;
-                if (p < json.size() && json[p] == ':')
-                    break;
-                at = json.find(quoted, at + 1);
-            }
-            if (at != std::string::npos)
-                title = string_value(json, "titleName", at);
+            title = localized_title(json, language, localized);
+            if (!title.empty())
+                break;
+        }
+        const std::string language = string_value(json, "defaultLanguage", localized);
+        if (title.empty() && !language.empty())
+        {
+            title = localized_title(json, language, localized);
         }
     }
     if (title.empty())
