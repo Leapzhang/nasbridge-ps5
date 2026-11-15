@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // usage: bake_font <font.ttf> <out.huifont> [pixel_size=56] [sdf_range=8] [atlas=1024]
-//                  [glyphs=basic|european]
+//                  [glyphs=basic|european|cjk] [cjk_list] [embolden_px=0]
 // Bakes printable ASCII plus a few UI symbols into a single-channel signed
 // distance field atlas with metrics and kerning (see src/gfx/font_format.hpp).
 
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 {
     if (argc < 3)
     {
-        std::fprintf(stderr, "usage: %s font.ttf out.huifont [pixel_size] [sdf_range] [atlas] [basic|european]\n", argv[0]);
+        std::fprintf(stderr, "usage: %s font.ttf out.huifont [pixel_size] [sdf_range] [atlas] [basic|european|cjk] [cjk_list] [embolden_px]\n", argv[0]);
         return 2;
     }
     const float pixel_size = argc > 3 ? std::strtof(argv[3], nullptr) : 56.0f;
@@ -101,6 +101,8 @@ int main(int argc, char **argv)
     const int atlas_size = argc > 5 ? std::atoi(argv[5]) : 1024;
     const bool european = argc > 6 && std::strcmp(argv[6], "european") == 0;
     const bool cjk = argc > 7 && std::strcmp(argv[6], "cjk") == 0;
+    const float embolden_px = argc > 8 ? std::strtof(argv[8], nullptr) : 0.0f;
+    const int sdf_shift = static_cast<int>(embolden_px * 128.0f / range + 0.5f);
     std::vector<int> selected = codepoints(european);
     if (cjk)
     {
@@ -141,6 +143,10 @@ int main(int argc, char **argv)
         glyph.bitmap = stbtt_GetCodepointSDF(&font, scale, codepoint, range, 128,
                                              128.0f / static_cast<float>(range), &glyph.w, &glyph.h,
                                              &glyph.xoff, &glyph.yoff);
+        if (glyph.bitmap != nullptr && sdf_shift > 0)
+            for (int i = 0; i < glyph.w * glyph.h; ++i)
+                glyph.bitmap[i] = static_cast<unsigned char>(
+                    std::min(255, static_cast<int>(glyph.bitmap[i]) + sdf_shift));
         glyphs.push_back(glyph);
     }
 
