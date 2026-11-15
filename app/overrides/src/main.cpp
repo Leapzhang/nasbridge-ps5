@@ -97,7 +97,9 @@ bool load_font(hui::gfx::Renderer &renderer, const char *name, hui::gfx::Font *f
 {
     std::string data;
     const std::string path = std::string(kAssets) + "/fonts/" + name;
-    if (!hui::save::read_file(path, &data) || !font->load(data))
+    // The GB 2312 SDF atlas is about 11 MiB; the kit's 4 MiB default is too
+    // small and silently leaves Chinese glyphs unavailable at runtime.
+    if (!hui::save::read_file(path, &data, 32u << 20) || !font->load(data))
     {
         hui::sys::log("[HUI] font %s failed: %s", name, font->error().c_str());
         return false;
