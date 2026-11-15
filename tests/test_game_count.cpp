@@ -52,6 +52,11 @@ int main(int argc, char **argv)
 {
     if (argc < 2)
         return 2;
+    NasGame localized;
+    read_param_json(R"({"localizedParameters":{"defaultLanguage":"en-US","en-US":{"titleName":"English"},"zh-CN":{"titleName":"中文标题"}}})", &localized);
+    check(localized.title == "中文标题", "Chinese title takes priority", localized.title);
+    read_param_json(R"({"localizedParameters":{"defaultLanguage":"en-US","zh-CN":{},"en-US":{"titleName":"English"}}})", &localized);
+    check(localized.title == "English", "missing Chinese title falls back", localized.title);
     const std::string work = argv[1];
     const std::string g = work + "/nas/games";
     std::system(("rm -rf \"" + work + "\"").c_str());
