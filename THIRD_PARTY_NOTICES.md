@@ -20,12 +20,22 @@ NASBridge, so the two combine without restriction.
   screens (`app/screens/`) in place of its demo designs. The kit's renderer,
   components, Acrylic theme, sound mixer and native build pipeline are used as
   they are.
-- **Modified kit files:** three files in `app/overrides/` replace the kit's
+- **Modified kit files:** files in `app/overrides/` replace the kit's
   versions. Each one says at the top what was changed:
   - `src/app/shell.cpp`: no design switcher for a single-screen app.
   - `src/runtime/app_heap.c`: a 256 MiB heap instead of 128 MiB.
   - `tools/build.sh`: accepts homebrew title IDs (`LAPY`, `FAKE`) as well as
     `PPSA`.
+  - `src/main.cpp`, `src/gfx/draw_list.cpp`, and `tools/font-baker/bake_font.cpp`:
+    load Chinese glyphs and draw translated interface labels.
+
+## Noto Sans SC
+
+The Chinese fallback font is Noto Sans SC, Copyright 2014-2026 Adobe and
+Google, licensed under the SIL Open Font License 1.1. Its source is
+[notofonts/noto-cjk](https://github.com/notofonts/noto-cjk); the build downloads
+the TTF with the SHA-256 pinned in `Dockerfile` and bakes a GB 2312 subset.
+The license is included at `app/overrides/assets/fonts/NotoSansSC-LICENSE.txt`.
 
 The kit brings in the components below, which end up in NASBridge's app. The
 kit's own `THIRD_PARTY_NOTICES.md` covers them in full.
